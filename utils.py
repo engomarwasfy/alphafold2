@@ -23,18 +23,16 @@ def shape_and_backend(x,y,backend):
     # auto type infer mode
     if backend == "auto":
         backend = "torch" if isinstance(x, torch.Tensor) else "numpy"
-    # check shapes
-    if len(x.shape) == len(y.shape):
-        while len(x.shape) < 3:
-            if backend == "torch":
-                x = x.unsqueeze(dim=0)
-                y = y.unsqueeze(dim=0)
-            else:
-                x = np.expand_dims(x, axis=0)
-                y = np.expand_dims(y, axis=0)
-    else:
+    if len(x.shape) != len(y.shape):
         raise ValueError("Shapes of A and B must match.")
 
+    while len(x.shape) < 3:
+        if backend == "torch":
+            x = x.unsqueeze(dim=0)
+            y = y.unsqueeze(dim=0)
+        else:
+            x = np.expand_dims(x, axis=0)
+            y = np.expand_dims(y, axis=0)
     return x,y,backend
 
 # parsing to pdb for easier visualization - other example from sidechainnet is:
@@ -65,9 +63,8 @@ def clean_pdb(name, route=None, chain_num=None):
     idxs = []
     for chain in raw_prot.topology.chains:
         # if arg passed, only select that chain
-        if chain_num is not None:
-            if chain_num != chain.index:
-                continue
+        if chain_num is not None and chain_num != chain.index:
+            continue
         # select indexes of chain
         chain_idxs = raw_prot.topology.select("chainid == {0}".format(chain.index))
         idxs.extend( chain_idxs.tolist() )
@@ -473,10 +470,7 @@ def MDScaling(pre_dist_mat, weights=None, iters=10, tol=1e-5, backend="auto",
         * historic_stress: (timesteps, )
     """
     if backend == "auto":
-        if isinstance(pre_dist_mat, torch.Tensor):
-            backend = "torch"
-        else:
-            backend = "numpy"
+        backend = "torch" if isinstance(pre_dist_mat, torch.Tensor) else "numpy"
     # run calcs     
     if backend == "torch":
         pre_dist_mat.unsqueeze_(0)
